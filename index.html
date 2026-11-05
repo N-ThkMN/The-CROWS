@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111612">
+  <title>The CROWS — 현장 단말기</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="boot-screen" id="boot-screen">
+    <span class="boot-mark" aria-hidden="true">The CROWS</span>
+    <form class="boot-name-form" id="boot-name-form">
+      <label for="player-name">사용자 이름</label>
+      <input id="player-name" name="player-name" type="text" maxlength="30" autocomplete="nickname" placeholder="이름을 입력하세요" required>
+      <span class="boot-prompt">이름 입력 후 Enter</span>
+      <button class="boot-start-button" type="submit">시스템 시작</button>
+      <p class="boot-name-status" id="boot-name-status" role="status" aria-live="polite"></p>
+    </form>
+    <div class="boot-message" id="boot-message" aria-live="polite" hidden></div>
+  </div>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">CR</div>
+        <div>
+          <div class="eyebrow">Field terminal · Fictional interface</div>
+          <h1>The CROWS <span style="color:var(--muted);font-weight:400">/ 현장 단말기</span></h1>
+        </div>
+      </div>
+      <div class="top-meta">
+        <span class="online">로컬 단말 연결</span>
+        <span id="date-label">----</span>
+      </div>
+    </header>
+
+    <section class="status-strip" aria-label="현재 상황">
+      <div class="status-title">
+        <h2>스타디움 · B구역</h2>
+        <span class="badge" id="alert-badge" data-level="1">경계 단계 1</span>
+      </div>
+      <div class="clock" id="clock" aria-live="off">00:00:00</div>
+    </section>
+
+    <section class="view-panel messenger-view" id="view-chat" aria-label="메신저">
+      <header class="conversation-head">
+        <div class="conversation-avatar" id="room-avatar" aria-hidden="true">CR</div>
+        <div class="conversation-info">
+          <strong id="room-title">분대 공용망</strong>
+          <span class="connection-indicator" id="room-status">● 연결 중 · 4명</span>
+        </div>
+        <span class="eyebrow">LOCAL CHAT</span>
+      </header>
+      <nav class="channel-list" id="channel-list" aria-label="대화방 선택" role="tablist">
+        <button class="channel-button" type="button" data-room="squad" role="tab" aria-selected="true">분대 공용망 <span class="channel-unread" aria-hidden="true"></span></button>
+        <button class="channel-button" type="button" data-room="crow02" role="tab" aria-selected="false">김영후 중사 <span class="channel-unread" aria-hidden="true"></span></button>
+        <button class="channel-button" type="button" data-room="crow03" role="tab" aria-selected="false">강석찬 하사 <span class="channel-unread" aria-hidden="true"></span></button>
+      </nav>
+      <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+      <template data-room-history="squad" data-day-offset="1">
+        <div data-sender="김영후 중사" data-text="전원 위치 보고. 짧게 말해." data-time="23:32"></div>
+        <div data-sender="민서진 중사" data-text="B-02에서 B-04까지 확인 중. 현재 이상 무" data-time="23:33"></div>
+        <div data-sender="민서진 중사" data-text="김 중사 오늘 같은 날 좀 빨리 끝내면 안 되냐?" data-time="23:33"></div>
+        <div data-sender="김영후 중사" data-text="민서진 중사는 수색 이어가고, 변화 생기면 즉시 알려." data-time="23:34"></div>
+        <div data-sender="민서진 중사" data-text="예예-" data-time="23:35"></div>
+        <div data-sender="강석찬 하사" data-text="화기 전력 확인 했습니다. 내일 수색 때 추가로 더 확보해야겠습니다." data-time="23:36"></div>
+        <div data-sender="방진호 하사" data-text="지원 장비 이상 없습니다. 거점 주변도 한 번 더 살펴보겠습니다." data-time="23:37"></div>
+        <div data-sender="강석찬 하사" data-text="00시까지 전원 복귀할 수 있도록." data-time="23:38"></div>
+        <div data-sender="부대원" data-text="B-07 임시 거점 이상 무. 복귀 하겠습니다." data-time="23:39"></div>
+      </template>
+      <template data-room-history="crow02" data-day-offset="1">
+        <div data-sender="김영후 중사" data-text="공용망 상태 양호. 현재 위치와 진행 상황 보고해." data-time="23:42"></div>
+        <div data-sender="부대원" data-text="B-02 구역 정찰 중입니다. 이상 발견 시 바로 보고하겠습니다." data-time="23:43"></div>
+        <div data-sender="김영후 중사" data-text="좋아. 서두르지 말고 확인된 것만 보고해." data-time="23:44"></div>
+      </template>
+      <template id="crow03-history" data-room-history="crow03" data-day-offset="1">
+        <div data-sender="강석찬 하사" data-text="의무 키트 점검 마쳤습니다. 공용망 듣고 있습니다." data-time="23:35"></div>
+        <div data-sender="부대원" data-text="확인했습니다. 현재 B-07 임시 거점 근처에 계십니까?" data-time="23:36"></div>
+        <div data-sender="강석찬 하사" data-text="맞습니다. 장비 정리하며 대기 중입니다. 보급품 점검도 끝났고요." data-time="23:37"></div>
+        <div data-sender="부대원" data-text="점검표에 빠진 항목은 없습니까?" data-time="23:38"></div>
+        <div data-sender="강석찬 하사" data-text="하나도 없습니다. 막내가 다시 세어봐도 결과는 같을 겁니다." data-time="23:39"></div>
+        <div data-sender="부대원" data-text="그럼 한 번 더 확인하겠습니다. 혹시 숨겨둔 간식도 점검 대상입니까?" data-time="23:40"></div>
+        <div data-sender="강석찬 하사" data-text="간식은 제 개인 장비라서요. 점검표엔 안 적어도 됩니다." data-time="23:41"></div>
+        <div data-sender="부대원" data-text="알겠습니다. 간식은 못 본 걸로 하고 점검표만 깔끔하게 작성하겠습니다." data-time="23:42"></div>
+        <div data-sender="강석찬 하사" data-text="좋습니다. 장비 모두 이상 없습니다. 보고는 제가 올리겠습니다." data-time="23:44"></div>
+      </template>
+      <div class="chat-tools" aria-label="빠른 답장">
+        <button class="quick-reply" type="button" data-message="현재 B-02 복도 구역 정찰 중입니다." data-reply-index="0">위치 확인</button>
+        <button class="quick-reply" type="button" data-message="확인 완료했습니다." data-reply-index="1">확인 완료</button>
+        <button class="quick-reply" type="button" data-message="생존자 이상 반응으로 임시 거점으로 이동 중입니다." data-reply-index="2">이상 반응</button>
+      </div>
+      <form class="chat-composer" id="chat-form">
+        <input id="chat-input" type="text" maxlength="180" placeholder="메시지를 입력하세요" autocomplete="off" aria-label="메시지 입력">
+        <button class="send-button" type="submit" aria-label="메시지 전송">↑</button>
+      </form>
+      <div class="local-note">가상 대원과 주고받는 로컬 데모 대화입니다 · 실제 통신 기능 없음</div>
+    </section>
+
+    <section class="view-panel board-view active" id="view-board" aria-label="상황판">
+      <div class="board-toolbar">
+        <div><strong>현장 상황판</strong><span>상황 · 대원 · 보급 · 기록</span></div>
+        <button class="button" id="alert-button" type="button">경계 단계 변경</button>
+      </div>
+    <div class="dashboard">
+      <div class="column">
+        <section class="panel">
+          <div class="panel-head"><h3>대원 상태</h3><span>UNIT / 04</span></div>
+          <div class="panel-body">
+            <div class="team-list">
+              <div class="team-member"><div class="member-info"><span class="callsign">김영후 중사</span><span class="role">임시 거점</span></div><span class="member-state">● 통신 가능</span></div>
+              <div class="team-member"><div class="member-info"><span class="callsign">민서진 중사</span><span class="role">내부 확인</span></div><span class="member-state wait">● 응답 대기</span></div>
+              <div class="team-member"><div class="member-info"><span class="callsign">강석찬 하사</span><span class="role">임시 거점</span></div><span class="member-state">● 통신 가능</span></div>
+              <div class="team-member"><div class="member-info"><span class="callsign">방진호 하사</span><span class="role">위치 미상</span></div><span class="member-state">● 통신 가능</span></div>
+            </div>
+            <div class="team-foot">마지막 점검 <span class="mono" id="last-check">--:--</span><br>표시 정보는 화면 연출을 위한 가상 데이터입니다.</div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h3>보급 현황</h3><span>기준값</span></div>
+          <div class="panel-body">
+            <div class="resources">
+              <div class="resource-row"><label>식량</label><div class="meter"><i style="width:68%"></i></div><output>68%</output></div>
+              <div class="resource-row"><label>의약품</label><div class="meter low"><i style="width:34%"></i></div><output>34%</output></div>
+              <div class="resource-row"><label>배터리</label><div class="meter"><i style="width:82%"></i></div><output>82%</output></div>
+            </div>
+            <p class="resource-note">보급 수치는 데모용이며 실제 재고와 무관합니다.</p>
+          </div>
+        </section>
+      </div>
+
+      <section class="panel map-panel">
+        <div class="panel-head"><h3>구역 현황도</h3><span>BLOCK / B-04</span></div>
+        <div class="map-wrap">
+          <div class="map-label"><span>가상 시설 배치 · 층 정보 미상</span><span>선택: <b id="selected-zone-label" style="color:var(--text)">B-01</b></span></div>
+          <div class="map-grid" id="map-grid" aria-label="가상 구역 현황">
+            <button class="zone" data-zone="B-01" data-state="확인됨" data-desc="기록된 특이 사항 없음"><strong>B-01</strong><small>출입구</small><span class="zone-state">확인됨</span></button>
+            <button class="zone unknown" data-zone="B-02" data-state="미확인" data-desc="아직 확인 기록이 없습니다"><strong>B-02</strong><small>복도</small><span class="zone-state">미확인</span></button>
+            <button class="zone unknown" data-zone="B-03" data-state="미확인" data-desc="아직 확인 기록이 없습니다"><strong>B-03</strong><small>공용실</small><span class="zone-state">미확인</span></button>
+            <button class="zone unknown" data-zone="B-04" data-state="미확인" data-desc="아직 확인 기록이 없습니다"><strong>B-04</strong><small>생존자 구역</small><span class="zone-state">미확인</span></button>
+            <button class="zone" data-zone="B-05" data-state="확인됨" data-desc="기록된 특이 사항 없음"><strong>B-05</strong><small>의무실</small><span class="zone-state">확인됨</span></button>
+            <div class="zone empty" aria-hidden="true"></div>
+            <button class="zone unknown" data-zone="B-06" data-state="미확인" data-desc="아직 확인 기록이 없습니다"><strong>B-06</strong><small>복도</small><span class="zone-state">미확인</span></button>
+            <button class="zone" data-zone="B-07" data-state="거점" data-desc="임시 거점으로 기록됨"><strong>B-07</strong><small>수호대</small><span class="zone-state">거점</span></button>
+            <div class="zone empty" aria-hidden="true"></div>
+            <button class="zone unknown" data-zone="B-08" data-state="미확인" data-desc="아직 확인 기록이 없습니다"><strong>B-08</strong><small>창고</small><span class="zone-state">미확인</span></button>
+            <button class="zone unknown" data-zone="B-09" data-state="미확인" data-desc="아직 확인 기록이 없습니다"><strong>B-09</strong><small>상황실</small><span class="zone-state">미확인</span></button>
+            <button class="zone" data-zone="B-10" data-state="확인됨" data-desc="기록된 특이 사항 없음"><strong>B-10</strong><small>외부 연결부</small><span class="zone-state">확인됨</span></button>
+          </div>
+          <div class="map-legend" aria-label="지도 범례">
+            <span class="legend-item"><i class="legend-dot"></i> 확인됨</span>
+            <span class="legend-item"><i class="legend-dot amber"></i> 미확인</span>
+            <span class="legend-item"><i class="legend-dot red"></i> 주의 보고</span>
+          </div>
+          <div class="zone-detail" aria-live="polite">
+            <div><strong id="zone-detail-title">B-01 · 확인됨</strong><p id="zone-detail-desc">기록된 특이 사항 없음</p></div>
+            <button class="button" id="confirm-zone" type="button">확인 기록</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="column right-column">
+        <section class="panel">
+          <div class="panel-head"><h3>상황 보고</h3><span>LOCAL LOG</span></div>
+          <div class="panel-body">
+            <form class="report-form" id="report-form">
+              <div class="form-row">
+                <select id="report-type" aria-label="보고 종류">
+                  <option value="note">일반 보고</option>
+                  <option value="alert">주의 보고</option>
+                </select>
+                <input id="report-input" maxlength="100" placeholder="보고 내용을 입력하세요" required aria-label="보고 내용">
+              </div>
+              <button class="button submit" type="submit">보고 기록 추가</button>
+            </form>
+            <p class="notice">이 화면의 모든 인물·구역·상태는 창작용 데모 데이터입니다.</p>
+          </div>
+        </section>
+        <section class="panel log-panel">
+          <div class="panel-head"><h3>기록 로그</h3><span id="log-count">02 ENTRIES</span></div>
+          <div class="panel-body log-list" id="log-list" aria-live="polite">
+            <div class="log-entry"><time class="log-time">23:48</time><div class="log-copy"><span class="log-tag">SYSTEM</span>현장 단말 연결 확인</div></div>
+            <div class="log-entry"><time class="log-time">23:42</time><div class="log-copy"><span class="log-tag note">부대원</span>임시 거점 상태 양호</div></div>
+          </div>
+        </section>
+      </div>
+    </div>
+      <footer class="footer"><span>CROW UNIT / FIELD TERMINAL MOCKUP</span><span>연출용 인터페이스 · 실제 정보 미포함</span></footer>
+    </section>
+
+    <nav class="bottom-nav" aria-label="주요 메뉴">
+      <button class="nav-button" type="button" data-view="board" aria-current="page"><span class="nav-icon" aria-hidden="true">▦</span><span>상황판</span></button>
+      <button class="nav-button" type="button" data-view="chat"><span class="nav-icon" aria-hidden="true">◉</span><span>메신저</span></button>
+    </nav>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="alert-notifications" id="alert-notifications" aria-live="polite" aria-relevant="additions text"></div>
+  <div class="monster-alert" id="monster-alert" hidden>
+    <section class="monster-alert-card" role="alertdialog" aria-modal="true" aria-labelledby="monster-alert-title" aria-describedby="monster-alert-description">
+      <div class="monster-alert-kicker">CROW UNIT / ALERT</div>
+      <h2 id="monster-alert-title">경보 발생</h2>
+      <p id="monster-alert-description">반경 내 괴물 감지</p>
+      <p class="monster-alert-detail">주변 상황을 확인하고 대원 채널을 확인하세요.</p>
+      <div class="monster-alert-actions">
+        <button class="monster-alert-button secondary" id="dismiss-monster-alert" type="button">확인</button>
+        <button class="monster-alert-button primary" id="open-board-alert" type="button">상황판 확인</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
