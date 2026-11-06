@@ -1,19 +1,79 @@
     (() => {
       const bootScreen = document.getElementById("boot-screen");
+      const bootPasscodeForm = document.getElementById("boot-passcode-form");
+      const bootPasscodeInput = document.getElementById("boot-passcode");
+      const bootPasscodeStatus = document.getElementById("boot-passcode-status");
       const bootNameForm = document.getElementById("boot-name-form");
       const playerNameInput = document.getElementById("player-name");
       const bootNameStatus = document.getElementById("boot-name-status");
+      const dutyDialogTitle = document.getElementById("duty-dialog-title");
+      const playerTerminalTitle = document.getElementById("player-terminal-title");
       const bootMessage = document.getElementById("boot-message");
       const playerNameStorageKey = "crow-player-name";
+      const bootPasscodeSha256 = "68be80b7e15c2191caaa3e6639d68bf595c03314ba7223f7b69b46efe87dc400";
+      const hashPasscode = async (passcode) => {
+        if (!window.crypto?.subtle) throw new Error("Web Crypto is unavailable");
+        const digest = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(passcode));
+        return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+      };
+      const attachPasscodeKeypad = (form, input, status) => {
+        const keypad = form.querySelector("[data-passcode-keypad]");
+        keypad.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-key], button[data-action]");
+          if (!button || !keypad.contains(button) || button.disabled) return;
+
+          if (button.dataset.action === "clear") input.value = "";
+          else if (button.dataset.action === "backspace") input.value = input.value.slice(0, -1);
+          else if (input.value.length < input.maxLength) input.value += button.dataset.key;
+
+          status.textContent = "";
+        });
+      };
+      attachPasscodeKeypad(bootPasscodeForm, bootPasscodeInput, bootPasscodeStatus);
       let playerName = "";
       let bootStarted = false;
+      let bootPasscodeChecking = false;
+      const updatePlayerTitles = () => {
+        dutyDialogTitle.textContent = `${playerName || "대원"} 상태`;
+        playerTerminalTitle.textContent = playerName ? `${playerName} 단말기` : "현장 단말기";
+      };
       try {
         playerName = window.localStorage.getItem(playerNameStorageKey) || "";
         playerNameInput.value = playerName;
         window.playerName = playerName;
+        updatePlayerTitles();
       } catch {
         bootNameStatus.textContent = "저장된 이름을 불러올 수 없습니다. 이름을 입력하고 Enter를 눌러 보세요.";
       }
+
+      bootPasscodeForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (bootPasscodeChecking) return;
+        const enteredPasscode = bootPasscodeInput.value.trim();
+        if (!/^\d{6}$/.test(enteredPasscode)) {
+          bootPasscodeStatus.textContent = "6자리 숫자 암호를 입력해 주세요.";
+          bootPasscodeInput.focus();
+          return;
+        }
+
+        bootPasscodeChecking = true;
+        bootPasscodeForm.querySelector("button[type='submit']").disabled = true;
+        try {
+          if (await hashPasscode(enteredPasscode) !== bootPasscodeSha256) {
+            bootPasscodeStatus.textContent = "암호가 일치하지 않습니다.";
+            bootPasscodeInput.select();
+            return;
+          }
+          bootPasscodeForm.hidden = true;
+          bootNameForm.hidden = false;
+          playerNameInput.focus();
+        } catch {
+          bootPasscodeStatus.textContent = "암호 확인 기능을 사용할 수 없습니다. 보안 컨텍스트(HTTPS 또는 localhost)에서 열어 주세요.";
+        } finally {
+          bootPasscodeChecking = false;
+          bootPasscodeForm.querySelector("button[type='submit']").disabled = false;
+        }
+      });
 
       bootNameForm.addEventListener("submit", (event) => {
         event.preventDefault();
@@ -34,6 +94,7 @@
 
         playerName = enteredName;
         window.playerName = playerName;
+        updatePlayerTitles();
         bootStarted = true;
         bootScreen.classList.add("booting");
         bootNameForm.hidden = true;
@@ -65,6 +126,87 @@
       const logList = document.getElementById("log-list");
       const toast = document.getElementById("toast");
       const chatMessages = document.getElementById("chat-messages");
+      const bulletinLockForm = document.getElementById("bulletin-lock-form");
+      const bulletinPasscodeInput = document.getElementById("bulletin-passcode");
+      const bulletinLockStatus = document.getElementById("bulletin-lock-status");
+      const bulletinPasscodeHint = document.getElementById("bulletin-passcode-hint");
+      const bulletinContent = document.getElementById("bulletin-content");
+      const bulletinDate = document.getElementById("bulletin-date");
+      const taskCheckboxes = [...document.querySelectorAll(".task-item input[type='checkbox']")];
+      const taskStatus = document.getElementById("task-status");
+      const taskCount = document.getElementById("task-count");
+      const taskProgress = document.getElementById("task-progress");
+      const dashboardTaskCount = document.getElementById("dashboard-task-count");
+      const dashboardTaskProgress = document.getElementById("dashboard-task-progress");
+      const taskStorageKey = "crow-daily-supply-checklist";
+      const heartRate = document.getElementById("heart-rate");
+      const heartState = document.getElementById("heart-state");
+      const panelHeartRate = document.getElementById("panel-heart-rate");
+      const panelHeartState = document.getElementById("panel-heart-state");
+      const dutyStatusTrigger = document.getElementById("duty-status-trigger");
+      const dutyDialog = document.getElementById("duty-dialog");
+      const vitalsCard = document.getElementById("vitals-card");
+      const oxygenValue = document.getElementById("oxygen-value");
+      const oxygenMeter = document.getElementById("oxygen-meter");
+      const oxygenMeterFill = document.getElementById("oxygen-meter-fill");
+      let bulletinFailedAttempts = 0;
+      let taskStorageAvailable = true;
+      attachPasscodeKeypad(bulletinLockForm, bulletinPasscodeInput, bulletinLockStatus);
+      const getTodayBoardPasscode = (now = new Date()) => {
+        const today = Number(`${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`);
+        return String(today - 20231206).padStart(6, "0");
+      };
+      const updateBulletinDate = (now = new Date()) => {
+        bulletinDate.textContent = now.toLocaleDateString("ko-KR", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit"
+        });
+      };
+      const lockBulletinBoard = () => {
+        bulletinContent.hidden = true;
+        bulletinLockForm.hidden = false;
+        bulletinLockForm.reset();
+        bulletinLockStatus.textContent = "";
+      };
+      updateBulletinDate();
+
+      bulletinLockForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const enteredPasscode = bulletinPasscodeInput.value.trim();
+        if (!/^\d{6}$/.test(enteredPasscode)) {
+          bulletinLockStatus.textContent = "6자리 숫자 암호를 입력해 주세요.";
+          bulletinPasscodeInput.focus();
+          return;
+        }
+
+        const submitButton = bulletinLockForm.querySelector("button[type='submit']");
+        submitButton.disabled = true;
+        try {
+          const today = new Date();
+          updateBulletinDate(today);
+          const expectedHash = await hashPasscode(getTodayBoardPasscode(today));
+          if (await hashPasscode(enteredPasscode) !== expectedHash) {
+            bulletinFailedAttempts += 1;
+            if (bulletinFailedAttempts >= 3) bulletinPasscodeHint.hidden = false;
+            bulletinLockStatus.textContent = "오늘의 암호와 일치하지 않습니다.";
+            bulletinPasscodeInput.select();
+            return;
+          }
+          bulletinLockForm.hidden = true;
+          bulletinContent.hidden = false;
+          bulletinPasscodeInput.value = "";
+          document.getElementById("bulletin-relock").focus();
+        } catch {
+          bulletinLockStatus.textContent = "암호 확인 기능을 사용할 수 없습니다. 보안 컨텍스트(HTTPS 또는 localhost)에서 열어 주세요.";
+        } finally {
+          submitButton.disabled = false;
+        }
+      });
+      document.getElementById("bulletin-relock").addEventListener("click", () => {
+        lockBulletinBoard();
+        bulletinPasscodeInput.focus();
+      });
       let selectedZone = zoneButtons[0];
       let toastTimer;
       let alertLevel = 1;
@@ -151,7 +293,7 @@
           unread: 0,
           replyIndex: 0,
           replies: [
-            "창고 앞입니다. 무슨 일 있습니까?",
+            "창고 앞입니다. 무슨 일 있습니까.",
             "바로 갈게, 대기해.",
             "확인. 바쁩니까-"
           ],
@@ -161,9 +303,9 @@
             "예-. 혹시 어딥니까?"
           ],
           quickReplies: [
-            { label: "1", message: "강 하사님, 어디십니까? ", replyIndex: 0 },
+            { label: "1", message: "강 하사님, 어디십니까?", replyIndex: 0 },
             { label: "2", message: "하사님, 생존자 이상 반응 확인되어 임시 거점으로 이동 중입니다.", replyIndex: 1 },
-            { label: "3", message: "현재 B-02 구역입니다.", replyIndex: 2 }
+            { label: "3", message: "위치 보고합니다. 현재 B-02 구역입니다.", replyIndex: 2 }
           ],
           messages: []
         }
@@ -191,6 +333,95 @@
         window.clearTimeout(toastTimer);
         toastTimer = window.setTimeout(() => toast.classList.remove("show"), 2300);
       };
+
+      const getTaskDateKey = (now = new Date()) => (
+        `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
+      );
+      const getCompletedTaskCount = () => taskCheckboxes.filter((checkbox) => checkbox.checked).length;
+      const updateTaskProgress = () => {
+        const completed = getCompletedTaskCount();
+        const total = taskCheckboxes.length;
+        const percentage = total ? Math.round(completed / total * 100) : 0;
+        taskCount.textContent = `${completed}/${total} 완료`;
+        dashboardTaskCount.textContent = `${completed}/${total}`;
+        for (const progress of [taskProgress, dashboardTaskProgress]) {
+          progress.setAttribute("aria-valuenow", String(completed));
+          progress.setAttribute("aria-valuetext", `${completed}/${total} 완료, ${percentage}%`);
+          progress.querySelector("span").style.width = `${percentage}%`;
+        }
+        if (taskStorageAvailable) {
+          taskStatus.textContent = completed === total
+            ? "오늘의 업무를 모두 완료했습니다."
+            : "체크한 업무는 오늘 날짜 기준으로 이 브라우저에 저장됩니다.";
+        }
+      };
+      const updateVitals = () => {
+        const pendingTasks = taskCheckboxes.length - getCompletedTaskCount();
+        const isInDanger = alertLevel >= 2 || pendingTasks >= 3;
+        const bpm = isInDanger ? 128 : 82;
+        const oxygen = isInDanger ? 72 : 98;
+        vitalsCard.dataset.state = isInDanger ? "danger" : "stable";
+        heartRate.textContent = String(bpm);
+        heartState.textContent = isInDanger ? "(위험)" : "(안정)";
+        panelHeartRate.textContent = String(bpm);
+        panelHeartState.textContent = isInDanger ? "(위험)" : "(안정)";
+        dutyStatusTrigger.dataset.state = isInDanger ? "danger" : "stable";
+        dutyStatusTrigger.setAttribute("aria-label", `심박수 ${bpm} BPM, ${isInDanger ? "위험" : "안정"}. 상태 상세 보기`);
+        oxygenValue.textContent = `${oxygen}%`;
+        oxygenMeter.setAttribute("aria-valuenow", String(oxygen));
+        oxygenMeterFill.style.width = `${oxygen}%`;
+      };
+      try {
+        const savedTasksText = window.localStorage.getItem(taskStorageKey);
+        if (savedTasksText) {
+          const savedTasks = JSON.parse(savedTasksText);
+          if (savedTasks?.date === getTaskDateKey()) {
+            if (!Array.isArray(savedTasks.completed)
+              || savedTasks.completed.length !== taskCheckboxes.length
+              || !savedTasks.completed.every((completed) => typeof completed === "boolean")) {
+              throw new Error("Saved checklist data is invalid");
+            }
+            taskCheckboxes.forEach((checkbox, index) => {
+              checkbox.checked = savedTasks.completed[index];
+            });
+          }
+        }
+      } catch {
+        taskStorageAvailable = false;
+        taskStatus.textContent = "오늘 업무 진행 상황을 불러오지 못했습니다. 이 브라우저에서 저장 기능을 사용할 수 없습니다.";
+      }
+      taskCheckboxes.forEach((checkbox) => {
+        checkbox.closest(".task-item").classList.toggle("is-complete", checkbox.checked);
+        checkbox.addEventListener("change", () => {
+          const completed = getCompletedTaskCount();
+          if (taskStorageAvailable) {
+            try {
+              window.localStorage.setItem(taskStorageKey, JSON.stringify({
+                date: getTaskDateKey(),
+                completed: taskCheckboxes.map((item) => item.checked)
+              }));
+            } catch {
+              taskStorageAvailable = false;
+              taskStatus.textContent = "업무 진행 상황을 저장할 수 없습니다. 브라우저 저장 공간을 확인해 주세요.";
+            }
+          }
+          checkbox.closest(".task-item").classList.toggle("is-complete", checkbox.checked);
+          updateTaskProgress();
+          updateVitals();
+          if (checkbox.checked && completed === taskCheckboxes.length) {
+            showToast("오늘 할 일 끝! 선임병들에게 인정받았습니다.");
+          }
+        });
+      });
+      updateTaskProgress();
+      updateVitals();
+      dutyStatusTrigger.addEventListener("click", () => dutyDialog.showModal());
+      document.getElementById("duty-dialog-close").addEventListener("click", () => dutyDialog.close());
+      dutyDialog.addEventListener("click", (event) => {
+        if (event.target === dutyDialog) dutyDialog.close();
+      });
+      dutyDialog.addEventListener("close", () => dutyStatusTrigger.focus());
+      dutyDialog.querySelector(".duty-link").addEventListener("click", () => dutyDialog.close());
 
       const createAlertNotification = ({ sender, text }) => {
         const container = document.getElementById("alert-notifications");
@@ -265,10 +496,15 @@
       };
 
       const sendStartupMessages = () => {
+        const now = new Date();
+        const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+        const threeHoursTwentyMinutesAgo = new Date(now.getTime() - (3 * 60 + 20) * 60 * 1000);
+        const hourText = (date) => `${date.getHours()}시`;
+        const timeText = (date) => `${date.getHours()}시 ${date.getMinutes()}분`;
         const messages = [
-          { sender: "김영후 중사", text: "강석찬 19시 이후로 본 사람 보고해." },
+          { sender: "김영후 중사", text: `강석찬 ${hourText(threeHoursAgo)} 이후로 본 사람 보고해.` },
           { sender: "민서진 중사", text: "상황실에 없냐?" },
-          { sender: "방진호 하사", text: "19시 20분경 의무실로 방향으로 가는 거 봤습니다." },
+          { sender: "방진호 하사", text: `${timeText(threeHoursTwentyMinutesAgo)}경 의무실로 방향으로 가는 거 봤습니다.` },
           { sender: "김영후 중사", text: "부상이거나 아픈 거면 제때 보고해." }
         ];
         messages.forEach((message, index) => {
@@ -321,7 +557,7 @@
             const avatar = document.createElement("span");
             avatar.className = "message-avatar";
             avatar.setAttribute("aria-hidden", "true");
-            avatar.textContent = message.sender === "SYSTEM" ? "SYS" : message.sender.slice(-2);
+            avatar.textContent = message.sender === "SYSTEM" ? "SYS" : message.sender.slice(0,1);
             item.append(avatar);
           }
 
@@ -562,11 +798,13 @@
         input.focus();
       });
 
-      document.querySelectorAll(".nav-button").forEach((button) => {
+      document.querySelectorAll("[data-view]").forEach((button) => {
         button.addEventListener("click", () => {
           const view = button.dataset.view;
+          const currentView = document.querySelector(".view-panel.active");
+          if (currentView?.id === "view-bulletin" && view !== "bulletin") lockBulletinBoard();
           document.querySelectorAll(".nav-button").forEach((item) => {
-            if (item === button) item.setAttribute("aria-current", "page");
+            if (item.dataset.view === view) item.setAttribute("aria-current", "page");
             else item.removeAttribute("aria-current");
           });
           document.querySelectorAll(".view-panel").forEach((panel) => {
@@ -612,6 +850,7 @@
         const badge = document.getElementById("alert-badge");
         badge.dataset.level = String(alertLevel);
         badge.textContent = `경계 단계 ${alertLevel}`;
+        updateVitals();
         addLog("SYSTEM", `경계 단계를 ${alertLevel}단계로 변경`);
         showToast(`경계 단계 ${alertLevel}`);
       });

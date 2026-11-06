@@ -9,6 +9,7 @@
       --green: #9ab88e;
       --amber: #e6ad58;
       --red: #df7063;
+      --alert-notification-opacity: 88%;
       --mono: "Cascadia Code", "D2Coding", Consolas, monospace;
       font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
     }
@@ -25,7 +26,7 @@
         var(--bg);
     }
 
-    button, input, select { font: inherit; }
+    button, input, select, textarea { font: inherit; }
     button { color: inherit; }
 
     .app { max-width: 1500px; margin: 0 auto; padding: 22px 28px 30px; }
@@ -39,6 +40,8 @@
     }
 
     .brand { display: flex; align-items: center; gap: 14px; }
+    .brand-heading { min-width: 0; }
+    .brand-title-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
     .mark {
       display: grid;
       width: 42px;
@@ -54,6 +57,10 @@
     .eyebrow, .mono { font-family: var(--mono); letter-spacing: .08em; }
     .eyebrow { color: var(--muted); font-size: 10px; text-transform: uppercase; }
     h1 { margin: 3px 0 0; font-size: 16px; letter-spacing: .13em; }
+    .health-trigger { border: 0; padding: 2px 0; background: transparent; color: var(--green); font: 10px var(--mono); white-space: nowrap; cursor: pointer; }
+    .health-trigger[data-state="danger"] { color: var(--red); }
+    .health-trigger:hover { filter: brightness(1.2); }
+    .health-trigger:focus-visible { outline: 2px solid var(--amber); outline-offset: 3px; }
     .top-meta { display: flex; align-items: center; gap: 24px; color: var(--muted); font: 11px var(--mono); }
     .online { color: var(--green); }
     .online::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
@@ -133,7 +140,8 @@
     .button:hover { background: #2a382b; }
     .button.danger { border-color: #704039; background: #2c1b19; color: #e98a7d; }
     .button.danger:hover { background: #422320; }
-    .button:focus-visible, .zone:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .button:focus-visible, .zone:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    button:disabled { cursor: not-allowed; opacity: .65; }
 
     .resources { display: grid; gap: 14px; }
     .resource-row { display: grid; grid-template-columns: 58px 1fr 30px; align-items: center; gap: 8px; font-size: 10px; }
@@ -143,6 +151,41 @@
     .meter i { display: block; height: 100%; background: var(--green); }
     .meter.low i { background: var(--amber); }
     .resource-note { margin: 13px 0 0; color: var(--muted); font-size: 9px; }
+    .duty-panel-body { display: grid; gap: 14px; }
+    .vitals-card { display: grid; gap: 10px; border: 1px solid #344336; border-radius: 4px; padding: 12px; background: #111712; transition: border-color .2s, box-shadow .2s, background .2s; }
+    .vitals-card[data-state="danger"] { border-color: #81443e; background: #211715; animation: vital-alert 1.8s ease-in-out infinite; }
+    .vital-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #c4cdc0; font-size: 10px; }
+    .vital-line strong { color: var(--green); font: 600 10px var(--mono); white-space: nowrap; }
+    .vitals-card[data-state="danger"] .vital-line strong, .vitals-card[data-state="danger"] #oxygen-value { color: var(--red); }
+    .oxygen-line { margin-top: 2px; }
+    .oxygen-line output { color: var(--green); font: 10px var(--mono); }
+    .oxygen-meter { height: 6px; }
+    .oxygen-meter i { background: var(--green); transition: width .3s ease, background-color .3s ease; }
+    .vitals-card[data-state="danger"] .oxygen-meter i { background: var(--red); }
+    .vitals-note { margin: 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+    .duty-progress { display: grid; gap: 7px; }
+    .duty-progress-label { display: flex; justify-content: space-between; gap: 8px; color: #c4cdc0; font-size: 10px; }
+    .duty-progress-label output { color: var(--green); font: 10px var(--mono); }
+    .duty-progress-track { height: 8px; overflow: hidden; border-radius: 4px; background: #29312a; }
+    .duty-progress-track span { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--green); transition: width .25s ease; }
+    .duty-link { width: 100%; min-height: 38px; }
+    .duty-dialog {
+      width: min(360px, calc(100vw - 32px));
+      max-width: none;
+      max-height: calc(100dvh - 40px);
+      overflow-y: auto;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--text);
+    }
+    .duty-dialog::backdrop { background: rgb(0 0 0 / 72%); backdrop-filter: blur(2px); }
+    .duty-dialog .duty-panel { border-color: #425143; border-top: 2px solid var(--green); box-shadow: 0 16px 48px rgb(0 0 0 / 55%); }
+    .duty-dialog .panel-head { min-height: 48px; }
+    .duty-dialog .panel-head h3 { font-size: 12px; }
+    .duty-close { display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid #39463a; border-radius: 4px; background: #1a211b; color: var(--muted); font-size: 20px; cursor: pointer; }
+    .duty-close:hover { border-color: #70836f; color: var(--text); }
+    .duty-close:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 
     .log-list { display: grid; gap: 0; max-height: 268px; overflow: auto; }
     .log-entry { display: grid; grid-template-columns: 48px 1fr; gap: 9px; padding: 10px 0; border-bottom: 1px solid #263027; }
@@ -182,7 +225,7 @@
       border-left: 3px solid var(--green);
       border-radius: 7px;
       padding: 11px 13px;
-      background: rgb(23 29 24 / 96%);
+      background: rgb(23 29 24 / var(--alert-notification-opacity));
       box-shadow: 0 8px 26px rgb(0 0 0 / 38%);
       animation: notification-arrive .25s ease-out both;
     }
@@ -215,6 +258,7 @@
       to { opacity: 0; transform: translateY(8px); }
     }
     @keyframes pulse { 50% { box-shadow: 0 0 14px #df706344; } }
+    @keyframes vital-alert { 50% { box-shadow: 0 0 14px rgb(223 112 99 / 18%); } }
 
     @media (max-width: 1000px) {
       .dashboard { grid-template-columns: minmax(210px, .75fr) minmax(360px, 1.4fr); }
@@ -299,6 +343,118 @@
     .view-panel { display: none; min-height: 0; flex: 1 1 auto; }
     .view-panel.active { display: flex; flex-direction: column; }
     .messenger-view { overflow: hidden; }
+    .bulletin-view, .tasks-view { overflow: hidden; }
+    .feature-toolbar {
+      display: flex;
+      min-height: 58px;
+      flex: 0 0 auto;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #141a15;
+    }
+    .feature-toolbar strong { font-size: 12px; }
+    .feature-toolbar span { display: block; margin-top: 4px; color: var(--muted); font-size: 9px; }
+    .feature-toolbar .feature-date { flex: 0 0 auto; margin: 0; font-size: 9px; }
+    .feature-scroll { min-height: 0; flex: 1 1 auto; overflow-y: auto; padding: 20px 16px; }
+    .feature-lock {
+      display: grid;
+      width: min(100%, 360px);
+      gap: 12px;
+      margin: 28px auto;
+      border: 1px solid var(--line);
+      border-top: 2px solid var(--amber);
+      border-radius: 6px;
+      padding: 22px;
+      background: linear-gradient(145deg, #171e18, #121713 80%);
+    }
+    .feature-lock[hidden], .bulletin-content[hidden] { display: none; }
+    .feature-lock-mark { color: var(--amber); font: 10px var(--mono); letter-spacing: .14em; }
+    .feature-lock h2, .bulletin-content h2 { margin: 0; font-size: 16px; }
+    .feature-lock > p, .bulletin-content-head p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+    .feature-lock label { color: var(--green); font-size: 11px; }
+    .feature-lock .bulletin-passcode-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .bulletin-passcode-label span { color: var(--amber); font: 10px var(--mono); }
+    .feature-lock input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid #334036;
+      border-radius: 4px;
+      padding: 11px;
+      background: #0e130f;
+      color: var(--text);
+      font-size: 15px;
+    }
+    .feature-lock input {
+      min-height: 46px;
+      border-color: #3a493b;
+      background: #101711;
+      box-shadow: inset 0 1px 4px rgb(0 0 0 / 28%);
+      color: #b3ce9f;
+      font: 18px var(--mono);
+      text-align: center;
+      letter-spacing: .3em;
+    }
+    .feature-lock .button { min-height: 42px; }
+    .feature-status { min-height: 1.4em; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+    .feature-lock .feature-status { color: var(--red); text-align: center; }
+    .tasks-view { overflow: hidden; }
+    .task-card {
+      display: grid;
+      width: min(100%, 520px);
+      gap: 18px;
+      margin: 8px auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 18px;
+      background: linear-gradient(145deg, #171e18, #121713 80%);
+    }
+    .task-progress-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .task-progress-heading h2 { margin: 7px 0 0; font-size: 15px; }
+    .task-progress-heading output { color: var(--green); font: 11px var(--mono); white-space: nowrap; }
+    .task-progress-track { height: 8px; }
+    .task-list { display: grid; gap: 8px; }
+    .task-item {
+      display: flex;
+      min-height: 58px;
+      align-items: center;
+      gap: 13px;
+      border: 1px solid #29372c;
+      border-radius: 4px;
+      padding: 11px 13px;
+      background: #111712;
+      color: #d3ddd0;
+      font-size: 12px;
+      line-height: 1.5;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, color .15s;
+    }
+    .task-item:hover { border-color: #536850; background: #172019; }
+    .task-item.is-complete { border-color: #344a35; color: #83917f; }
+    .task-item input {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+      margin: 0;
+      border: 0;
+      padding: 0;
+      background: transparent;
+      accent-color: #91b184;
+      cursor: pointer;
+    }
+    .task-item.is-complete span { text-decoration: line-through; text-decoration-color: #73866f; }
+    .task-status { padding-top: 2px; }
+    .bulletin-content { width: min(100%, 600px); margin: 0 auto; }
+    .bulletin-content-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .bulletin-content-head p { margin-top: 4px; }
+    .bulletin-post { border: 1px solid var(--line); border-left: 2px solid var(--green); padding: 16px; background: #141a15; }
+    .bulletin-tag { color: var(--green); font: 9px var(--mono); letter-spacing: .06em; }
+    .bulletin-post h3 { margin: 12px 0 8px; font-size: 13px; }
+    .bulletin-post p { margin: 0; color: #c4cdc0; font-size: 11px; line-height: 1.7; }
+    .bulletin-post time { display: block; margin-top: 14px; color: var(--muted); font-size: 9px; }
+    .feature-local-note { margin: 14px 0 0; color: var(--muted); font-size: 9px; line-height: 1.6; }
     .conversation-head {
       display: flex;
       min-height: 60px;
@@ -476,7 +632,7 @@
       display: grid;
       min-height: 58px;
       flex: 0 0 auto;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       border-top: 1px solid var(--line);
       padding-bottom: max(0px, env(safe-area-inset-bottom));
       background: #141a15;
@@ -571,10 +727,10 @@
     .boot-screen[hidden] { display: none; }
     .boot-mark { color: #788a72; font: 16px var(--mono); letter-spacing: .18em; }
     .boot-prompt, .boot-message { font: 10px var(--mono); letter-spacing: .13em; }
-    .boot-name-form { display: grid; width: min(100%, 280px); gap: 10px; text-align: left; }
-    .boot-name-form[hidden] { display: none; }
-    .boot-name-form label { color: var(--green); font-size: 11px; }
-    .boot-name-form input {
+    .boot-name-form, .boot-passcode-form { display: grid; width: min(100%, 280px); gap: 10px; text-align: left; }
+    .boot-name-form[hidden], .boot-passcode-form[hidden] { display: none; }
+    .boot-name-form label, .boot-passcode-form label { color: var(--green); font-size: 11px; }
+    .boot-name-form input, .boot-passcode-form input {
       width: 100%;
       min-height: 42px;
       border: 1px solid #344035;
@@ -584,9 +740,88 @@
       color: var(--text);
       font-size: 16px;
     }
-    .boot-name-form input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
-    .boot-name-form input::placeholder { color: #778277; }
-    .boot-name-form .boot-prompt { color: #849185; text-align: center; }
+    .boot-passcode-form input { text-align: center; letter-spacing: .3em; }
+    .boot-name-form input:focus-visible, .boot-passcode-form input:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+    .boot-name-form input::placeholder, .boot-passcode-form input::placeholder { color: #778277; }
+    .boot-name-form .boot-prompt, .boot-passcode-form .boot-prompt { color: #849185; text-align: center; }
+    .passcode-keypad {
+      border: 2px solid #4a5441;
+      border-radius: 8px 4px 7px 4px;
+      padding: 9px;
+      background:
+        linear-gradient(90deg, transparent 0 5px, rgb(255 255 255 / 2%) 5px 6px, transparent 6px),
+        repeating-linear-gradient(135deg, rgb(255 255 255 / 2%) 0 1px, transparent 1px 5px),
+        #20271d;
+      box-shadow: inset 0 0 0 2px #11160f, 0 4px 0 #080b08;
+    }
+    .radio-number-pad {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 5px;
+    }
+    .radio-number-pad button {
+      min-width: 0;
+      min-height: 38px;
+      border: 1px solid #777952;
+      border-bottom: 3px solid #171b12;
+      border-radius: 3px;
+      background: linear-gradient(180deg, #777a50, #51583a);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 18%);
+      color: #f0edc9;
+      font: 600 10px var(--mono);
+      cursor: pointer;
+      touch-action: manipulation;
+      user-select: none;
+      transition: filter .12s, transform .12s;
+    }
+    .radio-number-pad button:hover { filter: brightness(1.16); }
+    .radio-number-pad button:active { transform: translateY(2px); border-bottom-width: 1px; filter: brightness(.9); }
+    .radio-number-pad button:focus-visible { outline: 2px solid var(--amber); outline-offset: 1px; }
+    .radio-number-pad button[data-action] {
+      border-color: #726043;
+      border-bottom-color: #211b11;
+      background: linear-gradient(180deg, #746344, #51442e);
+      color: #f0d48a;
+      font: 600 8px "Malgun Gothic", sans-serif;
+    }
+    .radio-number-pad button[data-key="0"] { font-size: 12px; }
+    .touch-keypad {
+      border: 1px solid #334036;
+      border-radius: 8px;
+      padding: 10px;
+      background: #0d130f;
+      box-shadow: none;
+    }
+    .touch-keypad .radio-number-pad { gap: 8px; }
+    .touch-keypad .radio-number-pad button {
+      min-height: 44px;
+      border: 1px solid #35463a;
+      border-radius: 6px;
+      background: #202a22;
+      box-shadow: none;
+      color: #d3e2cb;
+      font-size: 13px;
+      transition: background-color .12s, border-color .12s;
+    }
+    .touch-keypad .radio-number-pad button:hover { border-color: #70836f; background: #2a382d; filter: none; }
+    .touch-keypad .radio-number-pad button:active { transform: none; border-bottom-width: 1px; background: #354839; filter: none; }
+    .touch-keypad .radio-number-pad button[data-action] {
+      border-color: #5a4b31;
+      background: #30291e;
+      color: #e6ca8b;
+      font-size: 11px;
+    }
+    .touch-keypad .radio-number-pad button[data-action]:hover { border-color: #8a7147; background: #3b3223; }
+    .touch-keypad .radio-number-pad button[data-action]:active { background: #4a3e2b; }
+    .boot-passcode-form input {
+      border-color: #4a5743;
+      background:
+        repeating-linear-gradient(135deg, rgb(255 255 255 / 1.5%) 0 1px, transparent 1px 5px),
+        #101711;
+      box-shadow: inset 0 2px 5px rgb(0 0 0 / 45%);
+      color: #c4d6ae;
+      font-family: var(--mono);
+    }
     .boot-start-button {
       min-height: 42px;
       border: 1px solid #53634f;
