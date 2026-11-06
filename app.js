@@ -694,7 +694,7 @@
       let activeAlertZone = null;
       const scheduleMonsterAlert = () => {
         if (activeAlertZone || monsterAlertTimer !== null) return;
-        const delay = 1800000 + Math.random() * 1800000;
+        const delay = 180000 + Math.random() * 120000;
         nextMonsterAlertAt = Date.now() + delay;
 
         const triggerWhenDue = () => {
