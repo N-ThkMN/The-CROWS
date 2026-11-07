@@ -266,8 +266,7 @@
               label: "위치보고",
               message: "현재 B-03 공용구역 앞입니다.",
               replies: [
-                { sender: "김영후 중사", text: "상황실로 잠깐 들어와." },
-                { sender: "김영후 중사", text: "같이 상황보고서 작성하고 싶음 와." },
+                { sender: "김영후 중사", text: "상황실로 와." },
                 { sender: "강석찬 하사", text: "화이팅하십쇼." },
                 { sender: "민서진 중사", text: "강 하사 어디냐니까?" },
                 { sender: "강석찬 하사", text: "외벽 점검 나갑니다- 같이 가주시는 겁니까?" },
@@ -734,10 +733,11 @@
             { sender: "김영후 중사", text: "부상이거나 아픈 거면 제때 보고해." }
           ],
           [
-            { sender: "김영후 중사", text: `${window.playerName || "막내"} 위치 보고 해` },
-            { sender: "민서진 중사", text: "왜 막내만 부르시나? 너네끼리 몰래 뭐 먹지마라." },
-            { sender: "강석찬 하사", text: "김 중사님이 민 중사님처럼은 안 하십니다..." },
-            { sender: "민서진 중사", text: "야 강 하사 지금 어디냐?" }
+            { sender: "김영후 중사", text: `${window.playerName || "막내"} 위치 보고 해.` },
+            { sender: "민서진 중사", text: "왜 막내만 부르시나? 야, 몰래 뭐 먹지 마라." },
+            { sender: "강석찬 하사", text: "모두가 민 중사님과 같지는..." },
+            { sender: "민서진 중사", text: "야 강 하사 지금 어디냐?" },
+            { sender: "김영후 중사", text: "보고서 쓰고 싶음 같이 와." }
           ]
         ];
         const messages = startupMessageSets[Math.floor(Math.random() * startupMessageSets.length)];
