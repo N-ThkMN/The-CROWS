@@ -138,7 +138,15 @@
       const taskProgress = document.getElementById("task-progress");
       const dashboardTaskCount = document.getElementById("dashboard-task-count");
       const dashboardTaskProgress = document.getElementById("dashboard-task-progress");
+      const supplyRows = [...document.querySelectorAll("#supply-resources .resource-row[data-supply-category]")];
+      supplyRows.forEach((row) => {
+        row.dataset.base = String(Math.floor(Math.random() * 51));
+      });
+      const supplyReadiness = document.getElementById("supply-readiness");
+      const supplyNote = document.getElementById("supply-note");
+      const supplyRequestButtons = [...document.querySelectorAll(".supply-request-button")];
       const taskStorageKey = "crow-daily-supply-checklist";
+      const supplyRequestStorageKey = "crow-daily-supply-requests";
       const heartRate = document.getElementById("heart-rate");
       const heartState = document.getElementById("heart-state");
       const panelHeartRate = document.getElementById("panel-heart-rate");
@@ -151,6 +159,15 @@
       const oxygenMeterFill = document.getElementById("oxygen-meter-fill");
       let bulletinFailedAttempts = 0;
       let taskStorageAvailable = true;
+      let supplyRequestStorageAvailable = true;
+      const supplyRequests = new Map();
+      const supplyDeliveredCounts = new Map();
+      const supplyRequestCounts = new Map();
+      let supplyRequestDate = null;
+      const supplyApprovalDelayMs = 30 * 1000;
+      const supplyConvoyDelayMs = 2 * 60 * 1000;
+      const supplyApprovers = ["강석찬 하사", "방진호 하사"];
+      const chooseSupplyApprover = () => supplyApprovers[Math.floor(Math.random() * supplyApprovers.length)];
       attachPasscodeKeypad(bulletinLockForm, bulletinPasscodeInput, bulletinLockStatus);
       const getTodayBoardPasscode = (now = new Date()) => {
         const today = Number(`${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`);
@@ -233,7 +250,7 @@
           ],
           quickReplies: [
             {
-              label: "확인",
+              label: "답변",
               message: "제가 가보겠습니다!",
               replies: [
                 { sender: "민서진 중사", text: "이야, 이럴 때만 빠릅니다?" },
@@ -246,16 +263,15 @@
               ]
             },
             {
-              label: "위치",
+              label: "위치보고",
               message: "현재 B-03 공용구역 앞입니다.",
               replies: [
-                { sender: "김영후 중사", text: "상황실 잠깐 들어와." },
-                { sender: "민서진 중사", text: "왜 막내만 부르시나? 야 너네끼리 뭐 먹지마라." },
-                { sender: "강석찬 하사", text: "김 중사님이 민 중사님처럼은 안 하십니다..." },
-                { sender: "민서진 중사", text: "야 강 하사 지금 어디냐?" },
+                { sender: "김영후 중사", text: "상황실로 잠깐 들어와." },
                 { sender: "김영후 중사", text: "같이 상황보고서 작성하고 싶음 와." },
                 { sender: "강석찬 하사", text: "화이팅하십쇼." },
-                { sender: "민서진 중사", text: "강 하사 어디냐니까?" }
+                { sender: "민서진 중사", text: "강 하사 어디냐니까?" },
+                { sender: "강석찬 하사", text: "외벽 점검 나갑니다- 같이 가주시는 겁니까?" },
+                { sender: "민서진 중사", text: "그래 다들 힘내라."}
               ]
             }
           ],
@@ -337,7 +353,150 @@
       const getTaskDateKey = (now = new Date()) => (
         `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`
       );
+      supplyRequestDate = getTaskDateKey();
       const getCompletedTaskCount = () => taskCheckboxes.filter((checkbox) => checkbox.checked).length;
+      const saveSupplyRequests = () => {
+        if (!supplyRequestStorageAvailable) return;
+        try {
+          window.localStorage.setItem(supplyRequestStorageKey, JSON.stringify({
+            date: getTaskDateKey(),
+            requests: Object.fromEntries(supplyRequests),
+            requestCounts: Object.fromEntries(supplyRequestCounts),
+            deliveredCounts: Object.fromEntries(supplyDeliveredCounts)
+          }));
+        } catch {
+          supplyRequestStorageAvailable = false;
+        }
+      };
+      const formatRemaining = (milliseconds) => {
+        const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+        return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+      };
+      const updateSupplyRequests = (now = Date.now()) => {
+        const today = getTaskDateKey();
+        if (today !== supplyRequestDate) {
+          supplyRequestDate = today;
+          supplyRequests.clear();
+          supplyDeliveredCounts.clear();
+          supplyRequestCounts.clear();
+          saveSupplyRequests();
+        }
+        supplyRows.forEach((row) => {
+          const category = row.dataset.supplyCategory;
+          const request = supplyRequests.get(category);
+          const details = row.querySelector(".supply-request-details");
+          const status = row.querySelector(".supply-request-state");
+          const requestButton = row.querySelector(".supply-request-button");
+          const approveButton = row.querySelector(".supply-approve-button");
+          const receiveButton = row.querySelector(".supply-receive-button");
+          const requestCount = supplyRequestCounts.get(category) || 0;
+          const activeRequest = Boolean(request && request.status !== "received");
+          details.hidden = !request;
+          requestButton.hidden = activeRequest;
+          requestButton.disabled = requestCount >= 2;
+          requestButton.textContent = requestCount >= 2
+            ? "오늘 마감"
+            : `${request?.status === "received" ? "재요청" : "요청"} ${requestCount}/2`;
+          row.classList.toggle("is-requested", activeRequest);
+          if (!request) return;
+
+          const approvalReady = request.status === "requested" && now >= request.approvalReadyAt;
+          const convoyReady = request.status === "acknowledged" && now >= request.convoyReadyAt;
+          approveButton.hidden = request.status !== "requested" || !approvalReady;
+          approveButton.disabled = false;
+          receiveButton.hidden = request.status !== "acknowledged" || !convoyReady;
+
+          if (request.status === "received") {
+            status.textContent = `인수 완료 · 창고 +1 · ${request.receivedItem}`;
+          } else if (request.status === "acknowledged") {
+            status.textContent = convoyReady
+              ? "수색팀 복귀 완료 · 인수 스캔 대기"
+              : `승인 확인 완료 · 수색팀 복귀 대기 (남은 시간: ${formatRemaining(request.convoyReadyAt - now)})`;
+          } else {
+            const approvalText = approvalReady
+              ? `${request.approver} 승인 완료 · 승인 확인 대기`
+              : `승인 대기 (${formatRemaining(request.approvalReadyAt - now)})`;
+            status.textContent = approvalText;
+          }
+        });
+        const activeCount = [...supplyRequests.values()].filter((request) => request.status !== "received").length;
+        const receivedCount = [...supplyDeliveredCounts.values()].reduce((sum, count) => sum + count, 0);
+        const totalRequestCount = [...supplyRequestCounts.values()].reduce((sum, count) => sum + count, 0);
+        supplyNote.textContent = supplyRequestStorageAvailable
+          ? `항목별 하루 2회 요청 · 오늘 접수 ${totalRequestCount}건 · 진행 ${activeCount}건 · 창고 인수 ${receivedCount}건`
+          : "요청 상태를 저장할 수 없습니다. 브라우저 저장 공간을 확인해 주세요.";
+      };
+      try {
+        const savedRequestsText = window.localStorage.getItem(supplyRequestStorageKey);
+        if (savedRequestsText) {
+          const savedRequests = JSON.parse(savedRequestsText);
+          if (savedRequests?.date === getTaskDateKey() && savedRequests.requests && typeof savedRequests.requests === "object") {
+            const validCategories = supplyRows.map((row) => row.dataset.supplyCategory);
+            Object.entries(savedRequests.requests).forEach(([category, request]) => {
+              if (!validCategories.includes(category)
+                || !["requested", "approved", "acknowledged", "received"].includes(request?.status)
+                || !Number.isFinite(request?.approvalReadyAt)
+                || (["approved", "acknowledged", "received"].includes(request.status)
+                  && !Number.isFinite(request?.convoyReadyAt))) {
+                throw new Error("Saved supply requests are invalid");
+              }
+              if (request.status === "approved") request.status = "acknowledged";
+              if (request.status === "requested") delete request.convoyReadyAt;
+              request.approver ||= chooseSupplyApprover();
+              supplyRequests.set(category, request);
+            });
+            if (savedRequests.requestCounts && typeof savedRequests.requestCounts === "object") {
+              Object.entries(savedRequests.requestCounts).forEach(([category, count]) => {
+                if (!validCategories.includes(category) || !Number.isInteger(count) || count < 0 || count > 2) {
+                  throw new Error("Saved supply request counts are invalid");
+                }
+                supplyRequestCounts.set(category, count);
+              });
+            } else {
+              supplyRequests.forEach((request, category) => {
+                supplyRequestCounts.set(category, 1);
+              });
+            }
+            if (savedRequests.deliveredCounts && typeof savedRequests.deliveredCounts === "object") {
+              Object.entries(savedRequests.deliveredCounts).forEach(([category, count]) => {
+                if (!validCategories.includes(category) || !Number.isInteger(count) || count < 0) {
+                  throw new Error("Saved supply inventory is invalid");
+                }
+                supplyDeliveredCounts.set(category, count);
+              });
+            } else {
+              supplyRequests.forEach((request, category) => {
+                if (request.status === "received") supplyDeliveredCounts.set(category, 1);
+              });
+            }
+          }
+        }
+      } catch {
+        supplyRequestStorageAvailable = false;
+      }
+      const updateSupplyStatus = () => {
+        const values = supplyRows.map((row) => {
+          const category = row.dataset.supplyCategory;
+          const base = Number(row.dataset.base) || 0;
+          const relatedTasks = taskCheckboxes.filter((checkbox) => checkbox.dataset.category === category);
+          const recovered = relatedTasks.length > 0 && relatedTasks.every((checkbox) => checkbox.checked);
+          const deliveredCount = supplyDeliveredCounts.get(category) || 0;
+          const value = Math.min(base + (recovered ? 10 : 0) + deliveredCount * 10, 100);
+          const fill = row.querySelector(".meter i");
+          const meter = row.querySelector(".meter");
+          const output = row.querySelector("output");
+          const level = value < 30 ? "critical" : value < 60 ? "low" : value < 80 ? "medium" : "high";
+          fill.style.width = `${value}%`;
+          output.textContent = `${value}%`;
+          meter.dataset.level = level;
+          row.classList.toggle("is-recovered", recovered || deliveredCount > 0);
+          return value;
+        });
+        const readiness = values.length
+          ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
+          : 0;
+        supplyReadiness.textContent = `전투 준비 ${readiness}%`;
+      };
       const updateTaskProgress = () => {
         const completed = getCompletedTaskCount();
         const total = taskCheckboxes.length;
@@ -377,12 +536,13 @@
           const savedTasks = JSON.parse(savedTasksText);
           if (savedTasks?.date === getTaskDateKey()) {
             if (!Array.isArray(savedTasks.completed)
-              || savedTasks.completed.length !== taskCheckboxes.length
+              || (savedTasks.completed.length !== taskCheckboxes.length
+                && savedTasks.completed.length !== taskCheckboxes.length - 1)
               || !savedTasks.completed.every((completed) => typeof completed === "boolean")) {
               throw new Error("Saved checklist data is invalid");
             }
             taskCheckboxes.forEach((checkbox, index) => {
-              checkbox.checked = savedTasks.completed[index];
+              checkbox.checked = savedTasks.completed[index] ?? false;
             });
           }
         }
@@ -407,14 +567,79 @@
           }
           checkbox.closest(".task-item").classList.toggle("is-complete", checkbox.checked);
           updateTaskProgress();
+          updateSupplyRequests();
+          updateSupplyStatus();
           updateVitals();
           if (checkbox.checked && completed === taskCheckboxes.length) {
-            showToast("오늘 할 일 끝! 선임병들에게 인정받았습니다.");
+            showToast("오늘 할 일 끝!");
           }
         });
       });
+      supplyRequestButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          const category = button.closest(".resource-row").dataset.supplyCategory;
+          const requestCount = supplyRequestCounts.get(category) || 0;
+          if (requestCount >= 2) {
+            showToast(`${category} 오늘 요청 횟수(2회)를 모두 사용했습니다.`);
+            return;
+          }
+          const now = Date.now();
+          supplyRequestCounts.set(category, requestCount + 1);
+          supplyRequests.set(category, {
+            status: "requested",
+            approver: chooseSupplyApprover(),
+            requestedAt: now,
+            approvalReadyAt: now + supplyApprovalDelayMs
+          });
+          saveSupplyRequests();
+          updateSupplyRequests();
+          showToast(`${category} 보급 요청 등록 · 승인 대기 중`);
+          addLog("보급 요청", `${category} 요청 접수 · 승인 대기`, "note");
+        });
+      });
+      supplyRows.forEach((row) => {
+        const category = row.dataset.supplyCategory;
+        row.querySelector(".supply-approve-button").addEventListener("click", (event) => {
+          const request = supplyRequests.get(category);
+          const approvalReady = request && request.status === "requested"
+            && Date.now() >= request.approvalReadyAt;
+          if (!approvalReady) return;
+          request.status = "acknowledged";
+          request.approvalConfirmedAt = Date.now();
+          request.convoyReadyAt = request.approvalConfirmedAt + supplyConvoyDelayMs;
+          saveSupplyRequests();
+          updateSupplyRequests();
+          showToast(`${category} 불출 승인 확인 · 수색팀 복귀 시작`);
+          addLog("보급 승인 확인", `${category} 승인 확인 · 수색팀 복귀 시작`, "note");
+        });
+        row.querySelector(".supply-receive-button").addEventListener("click", (event) => {
+          const request = supplyRequests.get(category);
+          const convoyReady = request && request.status === "acknowledged"
+            && Date.now() >= request.convoyReadyAt;
+          if (!convoyReady) return;
+          const receiveButton = event.currentTarget;
+          receiveButton.disabled = true;
+          row.classList.add("is-scanning");
+          row.querySelector(".supply-request-state").textContent = "전술 단말기 인증 중 · 화물 바코드 스캔";
+          window.setTimeout(() => {
+            request.status = "received";
+            request.receivedAt = Date.now();
+            request.receivedItem = row.dataset.delivery;
+            supplyDeliveredCounts.set(category, (supplyDeliveredCounts.get(category) || 0) + 1);
+            saveSupplyRequests();
+            row.classList.remove("is-scanning");
+            updateSupplyRequests();
+            updateSupplyStatus();
+            showToast(`[보급 완료] ${request.receivedItem} 거점 창고 적재 완료`);
+            addLog("보급 완료", `${request.receivedItem} 거점 창고 적재 완료`, "note");
+          }, 1400);
+        });
+      });
       updateTaskProgress();
+      updateSupplyRequests();
+      updateSupplyStatus();
       updateVitals();
+      window.setInterval(() => updateSupplyRequests(), 1000);
       dutyStatusTrigger.addEventListener("click", () => dutyDialog.showModal());
       document.getElementById("duty-dialog-close").addEventListener("click", () => dutyDialog.close());
       dutyDialog.addEventListener("click", (event) => {
@@ -501,12 +726,21 @@
         const threeHoursTwentyMinutesAgo = new Date(now.getTime() - (3 * 60 + 20) * 60 * 1000);
         const hourText = (date) => `${date.getHours()}시`;
         const timeText = (date) => `${date.getHours()}시 ${date.getMinutes()}분`;
-        const messages = [
-          { sender: "김영후 중사", text: `강석찬 ${hourText(threeHoursAgo)} 이후로 본 사람 보고해.` },
-          { sender: "민서진 중사", text: "상황실에 없냐?" },
-          { sender: "방진호 하사", text: `${timeText(threeHoursTwentyMinutesAgo)}경 의무실로 방향으로 가는 거 봤습니다.` },
-          { sender: "김영후 중사", text: "부상이거나 아픈 거면 제때 보고해." }
+        const startupMessageSets = [
+          [
+            { sender: "김영후 중사", text: `${hourText(threeHoursAgo)} 이후로 강석찬 본 사람 보고해.` },
+            { sender: "민서진 중사", text: "상황실에 없냐?" },
+            { sender: "방진호 하사", text: `${timeText(threeHoursTwentyMinutesAgo)}경 의무실로 방향으로 가는 거 봤습니다.` },
+            { sender: "김영후 중사", text: "부상이거나 아픈 거면 제때 보고해." }
+          ],
+          [
+            { sender: "김영후 중사", text: `${window.playerName || "막내"} 위치 보고 해` },
+            { sender: "민서진 중사", text: "왜 막내만 부르시나? 너네끼리 몰래 뭐 먹지마라." },
+            { sender: "강석찬 하사", text: "김 중사님이 민 중사님처럼은 안 하십니다..." },
+            { sender: "민서진 중사", text: "야 강 하사 지금 어디냐?" }
+          ]
         ];
+        const messages = startupMessageSets[Math.floor(Math.random() * startupMessageSets.length)];
         messages.forEach((message, index) => {
           window.setTimeout(() => receiveRoomMessage("squad", message), 500 + index * 1500);
         });

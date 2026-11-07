@@ -141,14 +141,16 @@
         </section>
 
         <section class="panel">
-          <div class="panel-head"><h3>보급 현황</h3><span>기준값</span></div>
+          <div class="panel-head"><h3>보급 현황</h3><span id="supply-readiness">전투 준비 0%</span></div>
           <div class="panel-body">
-            <div class="resources">
-              <div class="resource-row"><label>식량</label><div class="meter"><i style="width:68%"></i></div><output>68%</output></div>
-              <div class="resource-row"><label>의약품</label><div class="meter low"><i style="width:34%"></i></div><output>34%</output></div>
-              <div class="resource-row"><label>배터리</label><div class="meter"><i style="width:82%"></i></div><output>82%</output></div>
+            <div class="resources" id="supply-resources">
+              <div class="resource-row" data-supply-category="탄약" data-base="22" data-delivery="탄창 5박스"><label>탄약 · 탄창</label><div class="meter low"><i></i></div><output>22%</output><button class="supply-request-button" type="button">요청</button><div class="supply-request-details" hidden><p class="supply-request-state"></p><div class="supply-request-actions"><button class="supply-approve-button" type="button" hidden>승인 확인</button><button class="supply-receive-button" type="button" hidden>인수 스캔</button></div></div></div>
+              <div class="resource-row" data-supply-category="유류" data-base="14" data-delivery="연료 2통"><label>유류 · 지프</label><div class="meter low"><i></i></div><output>14%</output><button class="supply-request-button" type="button">요청</button><div class="supply-request-details" hidden><p class="supply-request-state"></p><div class="supply-request-actions"><button class="supply-approve-button" type="button" hidden>승인 확인</button><button class="supply-receive-button" type="button" hidden>인수 스캔</button></div></div></div>
+              <div class="resource-row" data-supply-category="방호 장비" data-base="24" data-delivery="필터 4개"><label>방호 장비 · 필터</label><div class="meter low"><i></i></div><output>24%</output><button class="supply-request-button" type="button">요청</button><div class="supply-request-details" hidden><p class="supply-request-state"></p><div class="supply-request-actions"><button class="supply-approve-button" type="button" hidden>승인 확인</button><button class="supply-receive-button" type="button" hidden>인수 스캔</button></div></div></div>
+              <div class="resource-row" data-supply-category="식량" data-base="32" data-delivery="전투식량 3상자"><label>식량</label><div class="meter low"><i></i></div><output>32%</output><button class="supply-request-button" type="button">요청</button><div class="supply-request-details" hidden><p class="supply-request-state"></p><div class="supply-request-actions"><button class="supply-approve-button" type="button" hidden>승인 확인</button><button class="supply-receive-button" type="button" hidden>인수 스캔</button></div></div></div>
+              <div class="resource-row" data-supply-category="거점 정비" data-base="18" data-delivery="정비 부품 1세트"><label>거점 정비</label><div class="meter low"><i></i></div><output>18%</output><button class="supply-request-button" type="button">요청</button><div class="supply-request-details" hidden><p class="supply-request-state"></p><div class="supply-request-actions"><button class="supply-approve-button" type="button" hidden>승인 확인</button><button class="supply-receive-button" type="button" hidden>인수 스캔</button></div></div></div>
             </div>
-            <p class="resource-note">보급 수치는 데모용이며 실제 재고와 무관합니다.</p>
+            <p class="resource-note" id="supply-note" role="status" aria-live="polite">보급 요청 0건 · 요청을 등록하거나 점검을 완료해 보급률을 회복하세요.</p>
           </div>
         </section>
       </div>
@@ -271,27 +273,31 @@
         <section class="task-card">
           <div class="task-progress-heading">
             <div><span class="feature-lock-mark">TODAY'S CHECKLIST</span><h2>오늘의 보급 점검</h2></div>
-            <output id="task-count">0/4 완료</output>
+            <output id="task-count">0/5 완료</output>
           </div>
-          <div class="duty-progress-track task-progress-track" id="task-progress" role="progressbar" aria-label="오늘 업무 달성률" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+          <div class="duty-progress-track task-progress-track" id="task-progress" role="progressbar" aria-label="오늘 업무 달성률" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
             <span></span>
           </div>
           <div class="task-list" id="task-list">
             <label class="task-item">
-              <input type="checkbox" data-task-id="magazines">
+              <input type="checkbox" data-task-id="magazines" data-category="탄약">
               <span>주간 잔여 탄창 수량 파악 및 재장전</span>
             </label>
             <label class="task-item">
-              <input type="checkbox" data-task-id="vehicle-fuel">
+              <input type="checkbox" data-task-id="vehicle-fuel" data-category="유류">
               <span>작전 차량(지프) 연료 게이지 확인 및 주유</span>
             </label>
             <label class="task-item">
-              <input type="checkbox" data-task-id="gas-mask-filter">
+              <input type="checkbox" data-task-id="gas-mask-filter" data-category="방호 장비">
               <span>방독면 필터 상태 점검 (막내 담당)</span>
             </label>
             <label class="task-item">
-              <input type="checkbox" data-task-id="perimeter-wire">
+              <input type="checkbox" data-task-id="perimeter-wire" data-category="거점 정비">
               <span>거점 통제구역 철조망 이상 유무 정찰</span>
+            </label>
+            <label class="task-item">
+              <input type="checkbox" data-task-id="food-rations" data-category="식량">
+              <span>비상 식량 수량 및 유통기한 확인</span>
             </label>
           </div>
           <p class="feature-status task-status" id="task-status" role="status" aria-live="polite">체크한 업무는 오늘 날짜 기준으로 이 브라우저에 저장됩니다.</p>
@@ -309,8 +315,10 @@
   <dialog class="duty-dialog" id="duty-dialog" aria-labelledby="duty-dialog-title">
     <section class="panel duty-panel">
       <div class="panel-head duty-panel-head">
-        <h3 id="duty-dialog-title">대원 상태</h3>
-        <button class="duty-close" id="duty-dialog-close" type="button" aria-label="상태 창 닫기">×</button>
+        <h3 id="duty-dialog-title">상태</h3>
+        <button class="duty-close" id="duty-dialog-close" type="button" aria-label="상태 창 닫기">
+          <span style="font-size: 20px;">×</span>
+        </button>
       </div>
       <div class="panel-body duty-panel-body">
         <div class="vitals-card" id="vitals-card" data-state="danger">
@@ -328,8 +336,8 @@
           <p class="vitals-note">미완료 업무 3건 이상 또는 경계 단계 2 이상 시 위험 표시</p>
         </div>
         <div class="duty-progress">
-          <div class="duty-progress-label"><span>일일 업무 달성률</span><output id="dashboard-task-count">0/4</output></div>
-          <div class="duty-progress-track" id="dashboard-task-progress" role="progressbar" aria-label="일일 업무 달성률" aria-valuemin="0" aria-valuemax="4" aria-valuenow="0">
+          <div class="duty-progress-label"><span>일일 업무 달성률</span><output id="dashboard-task-count">0/5</output></div>
+          <div class="duty-progress-track" id="dashboard-task-progress" role="progressbar" aria-label="일일 업무 달성률" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0">
             <span></span>
           </div>
         </div>
